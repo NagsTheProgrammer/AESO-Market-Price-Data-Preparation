@@ -1,0 +1,43 @@
+AIES Event Log,
+,
+"<a HREF=HelpTextServlet?service=EnergyAlertsInfo"">Click here for information about 'Energy Emergency Alerts'</a>""",
+Date/Time,Comments
+,
+09/11/2019 4:34,Path 1 in service
+09/11/2019 3:22,A frequency deviation of -0.4Hz occurred at 3:22. This was due to an event internal to the AIES.
+09/11/2019 3:20,Keephills 3 offline
+09/11/2019 3:20,Path 1 out of service
+09/09/2019 10:04,1201L out of service.
+09/09/2019 7:57,Path 83 out of service.
+09/09/2019 3:03,Sundance 6 on line
+09/09/2019 0:07,Calgary Energy Centre On Line
+09/08/2019 17:49,"Path 1 & Path 83 Forced Outage @ 17:49
+Path 1 returned @ 18:04
+Path 83 returned @ 18:22"
+09/07/2019 0:16,Calgary Energy Centre Off Line
+09/06/2019 23:24,Sundance 6 Off Line
+09/04/2019 10:03,The AESO is doing planned system maintenance today at 10:10 am MDT for approximately 30 minutes. ETS will be unavailable for the duration of the outage. Submissions and restatements will be delayed during this maintenance
+09/03/2019 6:02,Sundance 6 online
+09/03/2019 4:08,Battle River 3 online
+08/30/2019 22:04,H.R.Milner offline
+08/30/2019 22:03,Genesee #3 online.
+08/30/2019 21:18,Sundance #6 offline
+08/30/2019 18:22,Genesee #3 Offline.
+08/30/2019 15:00,Sundance Unit 4 on line
+08/28/2019 11:29,Keephills 3 offline.
+08/28/2019 09:24,Battle River 4 online
+08/28/2019 09:09,Keephills 3 offline.
+08/24/2019 08:36,Keephills 3 online.
+08/24/2019 02:26,Keephills 3 off line.
+08/22/2019 23:07,Sundance 4 offline
+08/22/2019 10:45,"The AESO is doing maintenance today at 11:10 for approx 20 min. ADaMS unavailable for the duration. System Controllers will dispatch via phone. ETS access may be lost for 2-3 min. ETS submissions, restatements, updates to reports and DVN may be impacted."
+08/21/2019 09:40,The AESO is doing maintenance today at 10:10 for approximately 10 min. ADaMS unavailable for the duration. System Controllers will dispatch via phone.
+08/19/2019 04:32,Sundance #4 online.
+08/16/2019 01:00,Genesee 1 on line.
+08/15/2019 23:13,Sundance Unit 4 offline
+08/15/2019 14:20,Path 2 in service
+08/15/2019 09:39,"The AESO is doing maintenance today at 10:10 for approx 20 min. ADaMS unavailable for the duration. System Controllers will dispatch via phone. ETS access may be lost for 2-3 min. ETS submissions, restatements, updates to reports and DVN may be impacted."
+08/14/2019 03:40,Battle River #3 offline.
+08/13/2019 09:40,The AESO is doing planned system maintenance today at 10:10 MDT for approximately 10 minutes. ADaMS will be unavailable for the duration of the outage and System Controllers will dispatch via phone.
+08/12/2019 14:41,Genesee 1 offline.
+08/12/2019 14:20,Keephills 3 online.
