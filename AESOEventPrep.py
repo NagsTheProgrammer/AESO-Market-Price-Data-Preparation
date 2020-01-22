@@ -1,81 +1,141 @@
+# AESO Market Price Data Prep
+#
+# Developed by Austyn Nagribianko
+# anagribianko@gmail.com
+
 #Library Imports
 import csv
-import datetime
 import nltk
-from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from nltk.stem import PorterStemmer
 from nltk.tokenize import PunktSentenceTokenizer
 from nltk.corpus import webtext
-import pandas as pd
-import numpy as np
-import re, math
-from collections import Counter
 from nltk.corpus import stopwords
 from nltk.stem.porter import *
-from nltk.corpus import wordnet as wn
-import os
 import winsound
 import datetime
 from datetime import date
+import time
 
 #File generation constraints
 eventFilter = "all"     # "online", "offline", "maintenance", "frequency division", "outage", or "all"
 assetFilter = "all"
-SMPsBack = 3*60         # 3 hours backwards
-SMPsForward = 3*60      # 3 hours forwards
+PPsBack = 3
+PPsForward = 3
+SMPsBack = PPsBack*60         # 3 hours backwards
+SMPsForward = PPsForward*60      # 3 hours forwards
 measToFile = 0          # write the event measurements (min, max SMP, etc) to each individual file before SMP list (can be turned off if files are to be used for separate purposes ie. files will only include header and SMPs)
 
 # CSV import filenames
-SMP_CSV = "D:/1. Programming/Pycharm/AESO GRU Predictor/Test Data/RandomSMPTestSmall.csv"        #Raw Data/SMPOct2016Oct2019.csv"
-Event_CSV = "D:/1. Programming/Pycharm/AESO GRU Predictor/Raw Data/EventSmall0.csv"    #EventOct2016Oct2019.csv"
+workingDir = "D:/1. Programming/Pycharm/AESO Market Price Preparation/"
+SMP_CSV = workingDir + "Raw Data/SMPJan2017Aug2019.csv"
+PP_CSV = workingDir + "Raw Data/PoolPriceJan2017Jan2020.csv"
+Event_CSV = workingDir + "Raw Data/EventJan2017Aug2019.csv"                     # EventJan2017Aug2019.csv
+AB_BC_Int_CSV = workingDir + "Raw Data/AB_BC_IntOct2016Oct2019.csv"
+AB_MT_Int_CSV = workingDir + "Raw Data/AB_MT_IntOct2016Oct2019.csv"
+AB_SK_Int_CSV = workingDir + "Raw Data/AB_SK_IntOct2016Oct2019.csv"
+AB_Int_Total_CSV = workingDir + "Raw Data/AB_Int_TotalOct2016Oct2019.csv"
+AB_Demand_CSV = workingDir + "Raw Data/AB_DemandOct2016Oct2019.csv"
+AB_Net_Gen_CSV = workingDir + "Raw Data/AB_Net_GenJan2017Jan2020.csv"
+eventDataPath = workingDir + "Event Data/"
+CSVFilePath = workingDir + "Prepped Data/"
+# ADDITIONAL FILE: add the file CSV directory here
 
 #Constants
 stop_words = set(stopwords.words("english"))
 include = ["out", "on", "off", "line", "in"]
-eventTypeDF = pd.DataFrame({'offline':['offline', 'off', 'out', 'ofline', 'Off', 'Offline'], 'online':['online', 'On', 'on', 'in', 'In', 'Online'], 'maintenance':['maintenance', 'maintain', 'maint', 'maintance', 'Maintenance', 'Maintain'], 'frequency deviation':['frequency', 'deviation', 'Frequency', 'freq', 'Deviation', 'Freq'], 'outage':['outage', 'outtage', 'out tage', 'out age', 'Outage', 'Outtage']})
 eventTypeList = [['offline', 'off', 'out', 'ofline', 'Off', 'Offline'], ['online', 'On', 'on', 'in', 'In', 'Online'], ['maintenance', 'maintain', 'maint', 'maintance', 'Maintenance', 'Maintain'], ['frequency deviation', 'deviation', 'Frequency', 'freq', 'Deviation', 'frequency'], ['outage', 'outtage', 'out tage', 'out age', 'Outage', 'Outtage']]
+assetList = [["Calgary Energy Centre", "Calgary Energy Center"], ["HR Milner", "H. R. Milner Generating Station", "H.R. MIlner", "Milner"], ["MATL"], ["Shepard Energy Centre", "Shepard"], ["WECC"], ["MacKay River", "MKRC"], ["AESO", "planned system maintenance", "planned maintenance"]]
 WORD = re.compile(r'\w+')
 stemmer = PorterStemmer()
 
+# removes key words from stopwords list
 for w in include:
     if w in stop_words:
         stop_words.remove(w)
 
 def main():
+    # timer
+    t0 = time.time()
+
     print("AESO Event Data Prepper\n")
+    print("Event filter: {}\nAsset filter: {}\nSMPs before event: {}\nSMPs after event: {}\n".format(eventFilter, assetFilter, SMPsBack, SMPsForward))
+
     # reads and parses data from SMP and grid event CSV files
+    print("Reading data files...")
     eventsCSV = readCSV(Event_CSV)
     smpCSV = readCSV(SMP_CSV)
-    SMPList = parseSMP(smpCSV)
-    eventList = parseEvent(eventsCSV)
+    ppCSV = readCSV(PP_CSV)
+    AB_BC_IntCSV = readCSV(AB_BC_Int_CSV)
+    AB_MT_IntCSV = readCSV(AB_MT_Int_CSV)
+    AB_SK_IntCSV = readCSV(AB_SK_Int_CSV)
+    AB_Int_TotalCSV = readCSV(AB_Int_Total_CSV)
+    AB_DemandCSV = readCSV(AB_Demand_CSV)
+    AB_Net_GenCSV = readCSV(AB_Net_Gen_CSV)
+    # ADDITIONAL FILE: mimic the above lines to read the CSV file
 
-    # prints all events parsed from files
-    print("Printing events in eventList")
-    for e in eventList:
-        e.printEvent()
+    # parse csv details
+    print("Parsing data files...")
+    print("Parsing file: {}".format(SMP_CSV))
+    SMPList = parseFile(smpCSV)
+    print("Parsing file: {}".format(PP_CSV))
+    PPList = parseFile(ppCSV)
+    print("Parsing file: {}".format(Event_CSV))
+    eventList = parseEvent(eventsCSV)
+    print("Parsing file: {}".format(AB_BC_Int_CSV))
+    AB_BC_IntList = parseFile(AB_BC_IntCSV)
+    print("Parsing file: {}".format(AB_MT_Int_CSV))
+    AB_MT_IntList = parseFile(AB_MT_IntCSV)
+    print("Parsing file: {}".format(AB_SK_Int_CSV))
+    AB_SK_IntList = parseFile(AB_SK_IntCSV)
+    print("Parsing file: {}".format(AB_Int_Total_CSV))
+    AB_Int_TotalList = parseFile(AB_Int_TotalCSV)
+    print("Parsing file: {}".format(AB_Demand_CSV))
+    AB_DemandList = parseFile(AB_DemandCSV)
+    print("Parsing file: {}".format(AB_Net_Gen_CSV))
+    AB_Net_GenList = parseFile(AB_Net_GenCSV)
+    # ADDITIONAL FILE: mimic the above lines to parse the list. Make sure to use parseFile and not parseEvent.
+    # parseFile works for all files with date and unit columns (ie date and SMP) exported from NRGStream.
+    # Other file formats may need to be formatted before they can be imported
+
+    # checking to ensure that the SMP range exceeds the event list range
+    # does not check ranges of intertie files
+    if SMPList[0][0] > eventList[0].dateTime:
+        print("SMP date range does not reach far enough. SMP list must exceed the events list")
+        exit()
+    elif SMPList[len(SMPList)-1][0] < eventList[len(eventList)-1].dateTime:
+        print("SMP date range is not recent enough. SMP list must exceed the events list")
+        exit()
+    else:
+        print("Files successfully read")
 
     # filters events into new list based on filters from the file generation constraints
+    print("Filtering events list...")
     new_eventList = filterEvents(eventList)
-    loadSMPList(new_eventList, SMPList)
 
-    # prints the new list of events
-    print("\nPrinting events in new_eventList")
-    for e in new_eventList:
-        e.printEvent()
+    print("Loading event information...")
+    loadLists(new_eventList, SMPList, PPList, AB_BC_IntList, AB_MT_IntList, AB_SK_IntList, AB_Int_TotalList, AB_DemandList, AB_Net_GenList)
+    # ADDITIONAL FILE: add the list file to the end of the loadLists arguments (see loadLists function)
+
+    # # prints the new list of events
+    # print("\nPrinting events in new_eventList")
+    # for e in new_eventList:
+    #     e.printEvent()
 
     # writes the filtered event list to CSV files containing the SMPs from the constraints listed in the file generation constraints
-    writeCSVFiles(new_eventList)
+    writeCSVFiles(new_eventList, CSVFilePath)
 
     # writes the filtered event data to a CSV file containing the event parameters
-    writeEventData(new_eventList)
+    writeEventData(new_eventList, eventDataPath)
+
+    t1 = time.time()
 
     # beeps to signal completion
     frequency = 2500  # Set Frequency To 2500 Hertz
     duration = 1000  # Set Duration To 1000 ms == 1 second
     winsound.Beep(frequency, duration)
 
-    print("run complete")
+    print("Run complete")
+    print("Time to run: {} seconds".format(t1-t0))
 
 # Event is a class that defines events produced from AESO AIES reports with date, time, and message
 class Event:
@@ -87,11 +147,15 @@ class Event:
         self.eventType = self.findEventType()
         self.asset = self.findAsset()
         self.SMP = []
-        self.AB_BC = []
-        self.AB_MT = []
-        self.AB_SK = []
-        self.AB_Int = []
+        self.PP = []
+        self.AB_BC_Int = 0
+        self.AB_MT_Int = 0
+        self.AB_SK_Int = 0
+        self.AB_Int_Total = 0
+        self.AB_Demand = 0
+        self.AB_Net_Gen = 0
         self.eventSMP = 0
+        self.eventPP = 0
         self.minMaxDifTotal = 0
         self.maxSMPAfterEvent = 0
         self.minSMPAfterEvent = 0
@@ -99,9 +163,11 @@ class Event:
         self.minReduction = 0
         self.minTimeFromEvent = 0
         self.maxTimeFromEvent = 0
-        self.priceEvent = "false"
+        self.SMPPriceEvent = "NO"
+        self.PPPriceEvent = "NO"
         self.avgBeforeEvent = 0
         self.avgAfterEvent = 0
+        self.maxPP = 0
 
     # printEvent prints the Event info in a formatted string
     def printEvent(self):
@@ -119,7 +185,7 @@ class Event:
         temp = self.message
         self.message = temp + appended
 
-    # find event type from the message
+    # findEventType searches the event message to find the event type based on the key words in event
     def findEventType(self):
         message = self.filterMessage(1)
 
@@ -165,7 +231,16 @@ class Event:
                 assetBool[1] = True
 
         if False in assetBool:
-            asset = "other"
+            for w in self.message.split():
+                if assetBool[0] and assetBool[1]:
+                    break
+                for x in range(0, len(assetList)):
+                    for y in assetList[x]:
+                        if w == y:
+                            asset = assetList[x][0]
+                            assetBool = [True, True]
+                            break
+            asset = "other" if False in assetBool else asset
         else:
             asset = name + " " + num
 
@@ -215,44 +290,74 @@ class Event:
 
         return message
 
-    def getSMPList(self, SMPList):
-        eventSMPList = []
-
+    def getPriceList(self, prices, numBack, numFor, type = "SMP", printResults = 0):
+        priceList = []
+        eventPrice = 0
         count = 0
-        for d in SMPList:
-            # print("SMPList date: ", d[0], "Self date: ", self.dateTime)
-            # print("SMPList hour: ", d[0].hour, "Self hour: ", self.dateTime.hour)
-            if d[0].year == self.dateTime.year and d[0].month == self.dateTime.month and d[0].day == self.dateTime.day and d[0].hour == self.dateTime.hour and d[0].minute == self.dateTime.minute:
-                print("\nMATCH FOUND")
-                print("Date match found is: ", self.dateTime)
-                print("Count is: ", count)
-                self.eventSMP = float(d[1])
+        dt = self.dateTime if type == "SMP" else self.dateTime - datetime.timedelta(minutes = self.dateTime.minute)
+        for d in prices:
+            if d[0] == dt:              #d[0].year == self.dateTime.year and d[0].month == self.dateTime.month and d[0].day == self.dateTime.day and d[0].hour == self.dateTime.hour and d[0].minute == self.dateTime.minute:
+                if printResults:
+                    print("\nMATCH FOUND")
+                    print("Date match found is: ", self.dateTime)
+                    print("Count is: ", count)
+                eventPrice = float(d[1])
                 break
             count += 1
 
-        if count < SMPsBack:
+        if type == "PP":
+            rangeLow = count
+        elif count < numBack:
             rangeLow = 0
         else:
-            rangeLow = count - SMPsBack
-        if len(SMPList) - count < SMPsForward:
-            rangeHigh = len(SMPList)
+            rangeLow = count - numBack
+        if len(prices) - count < numFor:
+            rangeHigh = len(prices)
         else:
-            rangeHigh = count + SMPsForward
+            rangeHigh = count + numFor
 
         for p in range(rangeLow, rangeHigh):
             try:
-                eventSMPList.append(SMPList[p])
+                priceList.append(prices[p])
             except:
-                "SMP list out of range"
+                "Price list out of range"
 
-        self.SMP = eventSMPList
+        return priceList, eventPrice
+
+    def loadDemand(self, AB_BC_IntList, AB_MT_IntList, AB_SK_IntList, AB_Int_TotalList, AB_DemandList, AB_Net_GenList):
+        # ADDITIONAL FILE: add the list file to the end of the loadDemand arguments
+        # depending on how you want to utilize the information you can either copy the below format for extracting information (copies value at the same hour as the event)
+        # or alternatively you can develop your own method as well
+        # the lists in this function fill the class variables therefore you may need to create another class variable to store the appropriate information
+        # see writeEventData function
+        for e in AB_BC_IntList:
+            if e[0].year == self.dateTime.year and e[0].month == self.dateTime.month and e[0].day == self.dateTime.day and e[0].hour == self.dateTime.hour:
+                self.AB_BC_Int = float(e[1])
+        for e in AB_MT_IntList:
+            if e[0].year == self.dateTime.year and e[0].month == self.dateTime.month and e[0].day == self.dateTime.day and e[0].hour == self.dateTime.hour:
+                self.AB_MT_Int = float(e[1])
+        for e in AB_SK_IntList:
+            if e[0].year == self.dateTime.year and e[0].month == self.dateTime.month and e[0].day == self.dateTime.day and e[0].hour == self.dateTime.hour:
+                self.AB_SK_Int = float(e[1])
+        for e in AB_Int_TotalList:
+            if e[0].year == self.dateTime.year and e[0].month == self.dateTime.month and e[0].day == self.dateTime.day and e[0].hour == self.dateTime.hour:
+                self.AB_Int_Total = float(e[1])
+        for e in AB_DemandList:
+            if e[0].year == self.dateTime.year and e[0].month == self.dateTime.month and e[0].day == self.dateTime.day and e[0].hour == self.dateTime.hour:
+                self.AB_Demand = float(e[1])
+        for e in AB_Net_GenList:
+            if e[0].year == self.dateTime.year and e[0].month == self.dateTime.month and e[0].day == self.dateTime.day and e[0].hour == self.dateTime.hour:
+                self.AB_Net_Gen = float(e[1])
 
     def writeToCSV(self, dir = ""):
         if dir != "":
             dir = dir + "/"
-        filename = dir + str(self.dateTime.year) + "-" + str(self.dateTime.month) + "-" + str(self.dateTime.day) + "_" + self.asset + "_" + self.eventType + ".csv"
+
+        filename = dir + str(self.dateTime.year) + "-" + str(self.dateTime.month) + "-" + str(self.dateTime.day) + "_h" + str(self.dateTime.hour) + "m" + str(self.dateTime.minute) + "_" + self.asset + "_" + self.eventType + ".csv"
+
         with open(filename, mode='w', newline='') as event_file:
             event_writer = csv.writer(event_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            # writes measurements to each csv file
             if (measToFile):
                 event_writer.writerow(["Event Name", filename])
                 event_writer.writerow(["Event Date & Time", self.dateTime])
@@ -267,7 +372,7 @@ class Event:
                 event_writer.writerow([])
                 event_writer.writerow(["Date Time", "System Marginal Price (SMP)"])
             else:
-                event_writer.writerow(["Date Time", "System Marginal Price (SMP)", "Event occurred at {}".format(self.dateTime)])
+                event_writer.writerow(["Date Time", "System Marginal Price (SMP)", "Event occurred at {}".format(self.dateTime), "Event Message: {}".format(self.message)])
             for p in self.SMP:
                 event_writer.writerow([p[0], p[1]])
 
@@ -301,67 +406,35 @@ class Event:
             avgCount += 1
 
         self.avgAfterEvent = avg / avgCount                                           # avg SMP after event
-        self.minMaxDifTotal = ((maxTotal/minTotal)-1)*100                             # percent growth
+
+        if minTotal != 0:
+            self.minMaxDifTotal = ((maxTotal/minTotal)-1)*100                             # percent growth
+        else:
+            self.minMaxDifTotal = "INF"
+
         self.minSMPAfterEvent = minAfterEvent
         self.maxSMPAfterEvent = maxAfterEvent
-        self.minReduction = (1-(self.minSMPAfterEvent[1] / self.eventSMP)) * 100      # percent reduction
-        self.maxGrowth = ((self.maxSMPAfterEvent[1] / self.eventSMP)-1) * 100         # percent growth
-        dif = self.minSMPAfterEvent[0] - self.dateTime
-        self.maxTimeFromEvent = (dif.days * 24 * 60 * 60 + dif.seconds) / 60
+
+        if self.eventSMP != 0:
+            self.minReduction = (1-(self.minSMPAfterEvent[1] / self.eventSMP)) * 100     # percent reduction
+            self.maxGrowth = ((self.maxSMPAfterEvent[1] / self.eventSMP)-1) * 100         # percent growth
+        else:
+            self.minReduction = 0
+            self.maxGrowth = "INF"
+
         dif = self.maxSMPAfterEvent[0] - self.dateTime
+        self.maxTimeFromEvent = (dif.days * 24 * 60 * 60 + dif.seconds) / 60
+        dif = self.minSMPAfterEvent[0] - self.dateTime
         self.minTimeFromEvent = (dif.days * 24 * 60 * 60 + dif.seconds) / 60
-        self.priceEvent = "true" if self.maxSMPAfterEvent[1] > 200 else "false"
+        self.SMPPriceEvent = "YES" if self.maxSMPAfterEvent[1] > 200 else "NO"
 
-
-# source: https://stackoverflow.com/questions/38365389/compare-similarity-between-names
-def get_cosine(vec1, vec2):
-    # print vec1, vec2
-    intersection = set(vec1.keys()) & set(vec2.keys())
-    numerator = sum([vec1[x] * vec2[x] for x in intersection])
-
-    sum1 = sum([vec1[x] ** 2 for x in vec1.keys()])
-    sum2 = sum([vec2[x] ** 2 for x in vec2.keys()])
-    denominator = math.sqrt(sum1) * math.sqrt(sum2)
-
-    if not denominator:
-        return 0.0
-    else:
-        return float(numerator) / denominator
-
-# source: https://stackoverflow.com/questions/38365389/compare-similarity-between-names
-def text_to_vector(text):
-    words = WORD.findall(text)
-    a = []
-    for i in words:
-        for ss in wn.synsets(i):
-            a.extend(ss.lemma_names())
-    for i in words:
-        if i not in a:
-            a.append(i)
-    a = set(a)
-    w = [stemmer.stem(i) for i in a if i not in stop_words]
-    return Counter(w)
-
-# source: https://stackoverflow.com/questions/38365389/compare-similarity-between-names
-def get_similarity(a, b):
-    a = text_to_vector(a.strip().lower())
-    b = text_to_vector(b.strip().lower())
-
-    return get_cosine(a, b)
-
-# source: https://stackoverflow.com/questions/38365389/compare-similarity-between-names
-def get_char_wise_similarity(a, b):
-    a = text_to_vector(a.strip().lower())
-    b = text_to_vector(b.strip().lower())
-    s = []
-
-    for i in a:
-        for j in b:
-            s.append(get_similarity(str(i), str(j)))
-    try:
-        return sum(s) / float(len(s))
-    except:  # len(s) == 0
-        return 0
+    def PoolPriceEvent(self):
+        temp = 0
+        for e in self.PP:
+            if e[1] > temp:
+                temp = e[1]
+        self.maxPP = temp
+        self.PPPriceEvent = "YES" if self.maxPP > 200 else "NO"
 
 # readCSV reads a csv input from the AIES reports and separates it into a list of strings by row excluding some initial formatted lines
 def readCSV(csvFile):
@@ -381,12 +454,12 @@ def readCSV(csvFile):
     return csvList
 
 # parseEvent parses the csvList into Events by separating date, time, message and checks for messages that were formatted improperly with alt+enter formatting in the cell
-def parseEvent(csvList):
-    events = []
+def parseEvent(eventCSV):
+    eventList = []
     eventCount = 0
 
-    for x in range(0, len(csvList)):
-        dateSplit = csvList[x].split(" ", 1)  #splits "mm/dd/yyyy" and "hh:mm,message"
+    for x in range(0, len(eventCSV)):
+        dateSplit = eventCSV[x].split(" ", 1)  #splits "mm/dd/yyyy" and "hh:mm,message"
         date = dateSplit[0].split("/")          #splits "mm", "dd", and "yyyy"
 
         if len(date) == 3:
@@ -395,30 +468,36 @@ def parseEvent(csvList):
             time = timeSplit[0].split(":")  # splits "hh" and "mm"
 
             dateTime = datetime.datetime(int(date[2]), int(date[0]), int(date[1]), int(time[0]), int(time[1]))
-            events.append(Event(dateTime, message))
+            if x > 0 and dateTime > eventList[x-1].dateTime:
+                eventList.append(Event(dateTime, message))
+            else:
+                eventList.insert(0, Event(dateTime, message))
             eventCount += 1
 
         if len(date) != 3 and eventCount > 0:
-            events[eventCount-1].appendMessage(", " + csvList[x])    #csvList[x]
+            eventList[eventCount-1].appendMessage(", " + eventCSV[x])    #eventCSV[x]
 
-    return events
+    return eventList
 
 # parseSMP parses the smpCSV into a list of dates / times and corresponding SMP
-def parseSMP(SMP_CSV):
-    SMPList = []
+def parseFile(fileCSV):
+    itemList = []
 
-    for p in range(0, len(SMP_CSV)):
-        dateSplit = SMP_CSV[p].split(" ", 1)  # splits "mm/dd/yyyy" and "hh:mm,price"
+    for p in range(0, len(fileCSV)):
+        dateSplit = fileCSV[p].split(" ", 1)  # splits "mm/dd/yyyy" and "hh:mm,item"
         date = dateSplit[0].split("/")          #splits "mm", "dd", and "yyyy"
         timeSplit = dateSplit[1].split(",", 1)  # splits "hh:mm" and "price"
-        SMP = float(timeSplit[1])
+        item = float(timeSplit[1])
         time = timeSplit[0].split(":")  # splits "hh" and "mm"
 
         dateTime = datetime.datetime(int(date[2]), int(date[0]), int(date[1]), int(time[0]), int(time[1]))
-        list = [dateTime, SMP]
-        SMPList.append(list)
+        list = [dateTime, item]
+        if p > 0 and list[0] > itemList[p-1][0]:
+            itemList.append(list)
+        else:
+            itemList.insert(0, list)
 
-    return SMPList
+    return itemList
 
 # printEvents prints all of the events in a eventList
 def printEvents(eventList):
@@ -433,32 +512,38 @@ def filterEvents(eventList, eventFilter = "all", assetFilter = "all"):
 
     return new_eventList
 
-def loadSMPList(eventList, SMPList):
+def loadLists(eventList, SMPList, PPList, AB_BC_IntList, AB_MT_IntList, AB_SK_IntList, AB_Int_TotalList, AB_DemandList, AB_Net_GenList):
+    # ADDITIONAL FILE: add the list file to the end of the loadLists arguments
     count = 0
     for e in eventList:
-        print("loadSMPList: ", count)
-        e.getSMPList(SMPList)
+        # print("loadSMPList: ", count)
+        e.SMP, e.eventSMP = e.getPriceList(SMPList, SMPsBack, SMPsForward)
+        e.PP, e.eventPP = e.getPriceList(PPList, PPsBack, PPsForward, "PP")
+        # print("Printing the pool price: {}".format(e.PP))
+        e.loadDemand(AB_BC_IntList, AB_MT_IntList, AB_SK_IntList, AB_Int_TotalList, AB_DemandList, AB_Net_GenList)
+        # ADDITIONAL FILE: add the list file to the end of the loadDemand arguments (see loadDemand function)
         e.SMPMinMaxDif()
+        e.PoolPriceEvent()
         count += 1
 
-def writeCSVFiles(eventList):
-    path = "/1. Programming/Pycharm/AESO GRU Predictor/Prepped Data"
+def writeCSVFiles(eventList, path):
     for e in eventList:
         e.writeToCSV(path)
 
-def writeEventData(eventList):
-    path = "/1. Programming/Pycharm/AESO GRU Predictor/Event Data/"
-
+def writeEventData(eventList, path):
     today = date.today()
     filename = path + "EventData_Asset[" + assetFilter + "]_Event[" + eventFilter + "]_" + str(today.day) + str(today.month) + str(today.year) + ".csv"
     with open(filename, mode='w', newline='') as event_file:
         event_writer = csv.writer(event_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        event_writer.writerow(["Date", "Event Type", "Asset", "Message", "SMP", "Price Spike (>$200)", "Max SMP After Event", "SMP Growth from Event", "Max SMP Date", "Time from Event (minutes)", "Min SMP After Event", "SMP Reduction from Event", "Min SMP Date", "Time from Event (minutes)", "Avg SMP before Event", "Avg SMP After Event"])
+        event_writer.writerow(["Date", "Event Type", "Asset", "Message", "SMP Spike After Event (>$200)", "Pool Price Spike After Event (>$200)", "Event SMP ($/MW)", "Event Pool Price ($/MW)", "Max SMP After Event", "Max Pool Price After Event", "Max SMP Growth from Event", "Max SMP Date", "Max SMP Minutes from Event", "Min SMP After Event", "Min SMP Reduction from Event", "Min SMP Date", "Min SMP Minutes from Event", "Avg SMP before Event", "Avg SMP After Event", "Net Generation (MW)", "Total AB Demand (MW)", "AB Total Intertie Trade (MW)", "AB - BC Intertie (MW)", "AB - MT Intertie (MW)", "AB - SK Intertie (MW)"])
+        # ADDITIONAL FILE: add new column header above
         for e in eventList:
             event_writer.writerow(
-                [e.dateTime, e.eventType, e.asset, e.message, e.eventSMP, e.priceEvent, e.maxSMPAfterEvent[1], e.maxGrowth, e.maxSMPAfterEvent[0],
+                [e.dateTime, e.eventType, e.asset, e.message, e.SMPPriceEvent, e.PPPriceEvent, e.eventSMP, e.eventPP, e.maxSMPAfterEvent[1], e.maxPP, e.maxGrowth, e.maxSMPAfterEvent[0],
                  e.maxTimeFromEvent, e.minSMPAfterEvent[1], e.minReduction, e.minSMPAfterEvent[0],
-                 e.minTimeFromEvent, e.avgBeforeEvent, e.avgAfterEvent])
+                 e.minTimeFromEvent, e.avgBeforeEvent, e.avgAfterEvent, e.AB_Net_Gen, e.AB_Demand, e.AB_Int_Total, e.AB_BC_Int, e.AB_MT_Int, e.AB_SK_Int])
+            # ADDITIONAL FILE: add the column data in the abvoe line
+
 
 # defining main
 if __name__ == "__main__":
